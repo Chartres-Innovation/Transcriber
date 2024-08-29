@@ -2,12 +2,13 @@ import os
 import streamlit as st
 from werkzeug.utils import secure_filename
 from openai import OpenAI
-from model_manager import get_model_function
 import time
 from st_copy_to_clipboard import st_copy_to_clipboard 
+from model_manager import get_model_function
 
-UPLOAD_FOLDER = 'uploads/'
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+# Remove UPLOAD_FOLDER creation
+# UPLOAD_FOLDER = 'uploads/'
+# os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 MAX_FILE_SIZE = 25 * 1024 * 1024  # 25 MB in bytes
 
@@ -15,40 +16,38 @@ MAX_FILE_SIZE = 25 * 1024 * 1024  # 25 MB in bytes
 st.set_page_config(page_title="Transcriber", page_icon="🎙️", layout="wide", initial_sidebar_state="expanded")
 
 # init session state variables
-def initialize_session_state():
-    if 'file_uploaded' not in st.session_state:
-        st.session_state.file_uploaded = False
-    if 'processing' not in st.session_state:
-        st.session_state.processing = False
-    if 'summary' not in st.session_state:
-        st.session_state.summary = None
+if 'file_uploaded' not in st.session_state:
+    st.session_state.file_uploaded = False
+if 'processing' not in st.session_state:
+    st.session_state.processing = False
+if 'summary' not in st.session_state:
+    st.session_state.summary = None
 
 # function to transcribe audio using Whisper API
-def transcribe_audio(file_path, api_key):
+def transcribe_audio(file, api_key):
     client = OpenAI(api_key=api_key)
-    with open(file_path, "rb") as audio_file:
-        transcription = client.audio.transcriptions.create(
-            model="whisper-1", 
-            file=audio_file, 
-            response_format="text"
-        )
+    transcription = client.audio.transcriptions.create(
+        model="whisper-1", 
+        file=file, 
+        response_format="text"
+    )
     return transcription
 
-st.title('Transcriber - Synthèse de réunion IA', anchor=False)
+
+
+st.title('Transcriber - Synthèse de réunion IA')
 
 # app container params
 with st.container():
-    st.subheader("📊 Paramètres", anchor=False)
+    st.subheader("📊 Paramètres")
     col1, col2 = st.columns(2)
     with col1:
-        # choose between audio transcription and meeting notes formatting
         option = st.selectbox(
             'Choisissez une option:',
             ('Transcription audio', 'Formatage de notes de réunion'),
             format_func=lambda x: f"🎙️ {x}" if x == 'Transcription audio' else f"📝 {x}"
         )
     with col2:
-        # select the ai model
         model_choice = st.selectbox(
             'Choisissez le modèle:',
             ('OpenAI/GPT-4o mini', 'OpenAI/GPT-4o','Mistral AI/Mistral Large 2', 'Mistral AI/Mixtral 8x22b', 'Cohere/Command-R+', 'Anthropic/Claude 3.5 Sonnet', 'Anthropic/Claude 3 Opus'),
@@ -57,11 +56,8 @@ with st.container():
         
         api_key = st.text_input("Entrez votre clé API OpenAI:", type="password")
 
-initialize_session_state()
-
 # workflow transcript
 if option == 'Transcription audio':
-    # GDPR compliance check
     with st.expander("En savoir plus sur le RGPD"):
         st.write("Le Règlement Général sur la Protection des Données (RGPD) est une réglementation de l'Union européenne sur la protection des données personnelles. https://www.cnil.fr/fr/reglement-europeen-protection-donnees")
 
@@ -76,12 +72,6 @@ if option == 'Transcription audio':
             if file_size > MAX_FILE_SIZE:
                 st.warning(f"⚠️ Le fichier dépasse la limite de 25 mb. Veuillez utiliser [https://offlineconverter.com/audio/](https://offlineconverter.com/audio/) pour réduire la taille du fichier avant de le télécharger.")
             else:
-                filename = secure_filename(uploaded_file.name)
-                file_path = os.path.join(UPLOAD_FOLDER, filename)
-
-                with open(file_path, "wb") as f:
-                    f.write(uploaded_file.getbuffer())
-
                 st.session_state.file_uploaded = True
                 st.success("✅ Fichier audio téléchargé avec succès.")
 
@@ -94,15 +84,13 @@ if option == 'Transcription audio':
                     st.info("ℹ️ Traitement en cours, veuillez patienter... Peut prendre plusieurs minutes...")
 
                     try:
-                        # audio transcription process
                         with st.spinner("🔄 1/2 Transcription de l'audio en cours..."):
                             progress_bar = st.progress(0)
                             for i in range(50):
                                 time.sleep(0.1)
                                 progress_bar.progress(i + 1)
-                            text = transcribe_audio(file_path, api_key)
+                            text = transcribe_audio(uploaded_file, api_key)
 
-                        # summary generation process
                         with st.spinner("🔄 2/2 Génération de la synthèse en cours..."):
                             for i in range(50, 100):
                                 time.sleep(0.1)
@@ -121,7 +109,6 @@ if option == 'Transcription audio':
 
 # note formatting workflow
 elif option == 'Formatage de notes de réunion':
-    # GDPR compliance check
     with st.expander("En savoir plus sur le RGPD"):
         st.write("Le Règlement Général sur la Protection des Données (RGPD) est une réglementation de l'Union européenne sur la protection des données personnelles. https://www.cnil.fr/fr/reglement-europeen-protection-donnees")
 
@@ -139,7 +126,6 @@ elif option == 'Formatage de notes de réunion':
                     st.info("ℹ️ Traitement en cours, veuillez patienter...")
 
                     try:
-                        # notes formatting process
                         with st.spinner("🔄 Formatage des notes en cours..."):
                             progress_bar = st.progress(0)
                             for i in range(100):
