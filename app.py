@@ -35,7 +35,7 @@ def transcribe_audio(file, api_key):
 
 
 
-st.title('Transcriber - Synthèse de réunion IA 🤖')
+st.title('Transcriber - Synthèse de réunion IA')
 
 # app container params
 with st.container():
