@@ -1,11 +1,10 @@
 import os
 import streamlit as st
 from werkzeug.utils import secure_filename
-import whisper
+from openai import OpenAI
 from model_manager import get_model_function
 import time
 from st_copy_to_clipboard import st_copy_to_clipboard 
-
 
 UPLOAD_FOLDER = 'uploads/'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -24,11 +23,16 @@ def initialize_session_state():
     if 'summary' not in st.session_state:
         st.session_state.summary = None
 
-# function to transcribe audio using Whisper - local model
-def transcribe_audio(file_path):
-    model = whisper.load_model("base")
-    result = model.transcribe(file_path)
-    return result['text']
+# function to transcribe audio using Whisper API
+def transcribe_audio(file_path, api_key):
+    client = OpenAI(api_key=api_key)
+    with open(file_path, "rb") as audio_file:
+        transcription = client.audio.transcriptions.create(
+            model="whisper-1", 
+            file=audio_file, 
+            response_format="text"
+        )
+    return transcription
 
 st.title('Transcriber - Synthèse de réunion IA', anchor=False)
 
@@ -51,7 +55,7 @@ with st.container():
             help="Si vous ne savez pas quel modèle choisir, utilisez OpenAI/GPT-4o mini."
         )
         
-        api_key = st.text_input("Entrez votre clé API:", type="password")
+        api_key = st.text_input("Entrez votre clé API OpenAI:", type="password")
 
 initialize_session_state()
 
@@ -84,7 +88,7 @@ if option == 'Transcription audio':
         if st.session_state.file_uploaded and not st.session_state.processing:
             if st.button("🚀 Lancer l'analyse"):
                 if not api_key:
-                    st.error("⚠️ Veuillez entrer une clé API valide avant de lancer l'analyse.")
+                    st.error("⚠️ Veuillez entrer une clé API OpenAI valide avant de lancer l'analyse.")
                 else:
                     st.session_state.processing = True
                     st.info("ℹ️ Traitement en cours, veuillez patienter... Peut prendre plusieurs minutes...")
@@ -96,7 +100,7 @@ if option == 'Transcription audio':
                             for i in range(50):
                                 time.sleep(0.1)
                                 progress_bar.progress(i + 1)
-                            text = transcribe_audio(file_path)
+                            text = transcribe_audio(file_path, api_key)
 
                         # summary generation process
                         with st.spinner("🔄 2/2 Génération de la synthèse en cours..."):
@@ -129,7 +133,7 @@ elif option == 'Formatage de notes de réunion':
         if notes and not st.session_state.processing:
             if st.button("🚀 Lancer le formatage"):
                 if not api_key:
-                    st.error("⚠️ Veuillez entrer une clé API valide avant de lancer le formatage.")
+                    st.error("⚠️ Veuillez entrer une clé API OpenAI valide avant de lancer le formatage.")
                 else:
                     st.session_state.processing = True
                     st.info("ℹ️ Traitement en cours, veuillez patienter...")
@@ -159,7 +163,6 @@ if st.session_state.summary:
     st.write(st.session_state.summary)
 
     st_copy_to_clipboard(st.session_state.summary, before_copy_label="📋 Copier la synthèse", after_copy_label="✅ Synthèse copiée dans le presse-papier.")
-
 
 # footer
 st.divider()
