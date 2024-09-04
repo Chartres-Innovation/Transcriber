@@ -48,6 +48,7 @@ pyarrow==17.0.0
 pydantic==2.7.3
 pydantic_core==2.18.4
 pydeck==0.9.1
+pydub==0.25.1
 Pygments==2.18.0
 python-dateutil==2.9.0.post0
 pytz==2024.1
